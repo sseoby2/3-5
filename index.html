@@ -209,6 +209,67 @@
   color: #999;
   font-weight: normal;
 }
+    .timetable-buttons {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.day-button {
+  flex: 1;
+  border: none;
+  padding: 11px 5px;
+  border-radius: 12px;
+  background: #f0eefc;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: bold;
+}
+
+.day-button:hover {
+  background: #ddd9fa;
+}
+
+.day-button.active {
+  background: #8b7cff;
+  color: white;
+}
+
+#timetable .period {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  background: #f7f5ff;
+  padding: 14px 16px;
+  border-radius: 12px;
+  margin-bottom: 10px;
+}
+
+#timetable .period-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+#timetable .period-number {
+  color: #888;
+  font-size: 13px;
+}
+
+#timetable .subject {
+  font-size: 17px;
+  font-weight: bold;
+}
+
+#timetable .teacher {
+  color: #999;
+  font-size: 12px;
+}
+
+.changed {
+  color: #8b7cff;
+}
   </style>
 </head>
 
@@ -252,29 +313,17 @@
   <h2>📚 이번 주 시간표</h2>
 
   <div class="timetable-buttons">
-<div class="timetable-buttons">
+    <button class="day-button" data-day="0">월</button>
+    <button class="day-button" data-day="1">화</button>
+    <button class="day-button" data-day="2">수</button>
+    <button class="day-button" data-day="3">목</button>
+    <button class="day-button" data-day="4">금</button>
+  </div>
 
-  <button class="day-button" onclick="showDay(0)">
-    월
-  </button>
-
-  <button class="day-button" onclick="showDay(1)">
-    화
-  </button>
-
-  <button class="day-button" onclick="showDay(2)">
-    수
-  </button>
-
-  <button class="day-button" onclick="showDay(3)">
-    목
-  </button>
-
-  <button class="day-button" onclick="showDay(4)">
-    금
-  </button>
-
-</div>
+  <div id="timetable">
+    📚 시간표를 불러오는 중...
+  </div>
+</section>
 
   <div id="timetable">
     시간표를 불러오는 중...
@@ -467,159 +516,197 @@
   loadTimetable();
 
 <script>
-  const API_URL =
-    "https://holy-recipe-ee6e.sseoby0220.workers.dev";
+const API_URL = "https://holy-recipe-ee6e.sseoby0220.workers.dev";
 
-  const SCHOOL_NAME = "대전하기중학";
-  const GRADE = 3;
-  const CLASS_NO = 5;
+const SCHOOL_NAME = "대전하기중학";
+const GRADE = 3;
+const CLASS_NO = 5;
 
-  let timetableData = null;
-  let selectedDay = new Date().getDay() - 1;
+let timetableData = null;
 
-  // 주말이면 월요일 선택
-  if (selectedDay < 0 || selectedDay > 4) {
-    selectedDay = 0;
+
+// ─────────────────────
+// 시간표 가져오기
+// ─────────────────────
+
+async function loadTimetable() {
+
+  const box = document.getElementById("timetable");
+
+  box.innerHTML = "📚 시간표를 불러오는 중...";
+
+  try {
+
+    const url =
+      API_URL +
+      "?schoolname=" + encodeURIComponent(SCHOOL_NAME) +
+      "&grade=" + GRADE +
+      "&classno=" + CLASS_NO +
+      "&week=0";
+
+    console.log("요청 주소:", url);
+
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      throw new Error("API 오류 " + response.status);
+    }
+
+    timetableData = await response.json();
+
+    console.log("받은 시간표:", timetableData);
+
+
+    // 오늘 요일 자동 선택
+    let today = new Date().getDay() - 1;
+
+    // 토/일이면 월요일
+    if (today < 0 || today > 4) {
+      today = 0;
+    }
+
+    showDay(today);
+
+  } catch (error) {
+
+    console.error(error);
+
+    box.innerHTML =
+      "😥 시간표를 불러오지 못했어요.<br>" +
+      "<small>" + error.message + "</small>";
   }
+}
 
 
-  // 이번 주 시간표 가져오기
-  async function loadTimetable() {
+// ─────────────────────
+// 요일 버튼
+// ─────────────────────
 
-    const box = document.getElementById("timetable");
+document.querySelectorAll(".day-button").forEach(button => {
+
+  button.addEventListener("click", function() {
+
+    const day = Number(this.dataset.day);
+
+    console.log("선택한 요일:", day);
+
+    showDay(day);
+
+  });
+
+});
+
+
+// ─────────────────────
+// 선택한 요일의 시간표 보여주기
+// ─────────────────────
+
+function showDay(day) {
+
+  const box = document.getElementById("timetable");
+
+
+  if (!timetableData) {
 
     box.innerHTML = "📚 시간표를 불러오는 중...";
 
-    try {
-
-      const url =
-        `${API_URL}` +
-        `?schoolname=${encodeURIComponent(SCHOOL_NAME)}` +
-        `&grade=${GRADE}` +
-        `&classno=${CLASS_NO}` +
-        `&week=0`;
-
-      const response = await fetch(url);
-
-      if (!response.ok) {
-        throw new Error(`API 오류: ${response.status}`);
-      }
-
-      timetableData = await response.json();
-
-      console.log("시간표:", timetableData);
-
-      showDay(selectedDay);
-
-    } catch (error) {
-
-      console.error(error);
-
-      box.innerHTML = `
-        <p>😥 시간표를 불러오지 못했어요.</p>
-        <small>${error.message}</small>
-      `;
-    }
+    return;
   }
 
 
-  // 요일 선택
-  function showDay(dayIndex) {
+  // 선택된 버튼 색깔 변경
+  document.querySelectorAll(".day-button").forEach(button => {
 
-    selectedDay = dayIndex;
+    button.classList.remove("active");
 
-    const box = document.getElementById("timetable");
+  });
 
-    if (!timetableData) {
-      box.innerHTML = "📚 시간표를 불러오는 중...";
-      return;
+
+  const selectedButton =
+    document.querySelector(
+      `.day-button[data-day="${day}"]`
+    );
+
+
+  if (selectedButton) {
+
+    selectedButton.classList.add("active");
+
+  }
+
+
+  // 해당 요일 시간표
+  const lessons = timetableData.timetable[day];
+
+
+  if (!lessons || lessons.length === 0) {
+
+    box.innerHTML =
+      "<p>이 날은 시간표가 없습니다.</p>";
+
+    return;
+  }
+
+
+  // 시간표 표시
+  box.innerHTML = lessons.map(lesson => {
+
+    let subject = lesson.subject || "수업 없음";
+
+    let extra = "";
+
+
+    // 변경된 수업
+    if (lesson.replaced) {
+
+      subject = "🔄 " + subject;
+
+      if (lesson.original) {
+
+        extra =
+          `<span class="teacher">
+            원래: ${lesson.original.subject}
+          </span>`;
+
+      }
     }
 
 
-    // 버튼 활성화
-    document.querySelectorAll(".day-button").forEach((button, index) => {
+    return `
+      <div class="period">
 
-      button.classList.toggle(
-        "active",
-        index === dayIndex
-      );
+        <div class="period-info">
 
-    });
-
-
-    const lessons =
-      timetableData.timetable[dayIndex];
-
-
-    if (!lessons || lessons.length === 0) {
-
-      box.innerHTML =
-        "<p>이 날은 시간표가 없습니다.</p>";
-
-      return;
-    }
-
-
-    box.innerHTML = lessons.map((lesson) => {
-
-      let subject = lesson.subject;
-
-      // 변경된 수업
-      if (lesson.replaced) {
-
-        if (lesson.original) {
-
-          subject = `
-            <span class="changed-subject">
-              ${lesson.subject || "변경된 수업"}
-            </span>
-
-            <small>
-              원래: ${lesson.original.subject}
-            </small>
-          `;
-
-        } else {
-
-          subject = `
-            <span class="changed-subject">
-              변경된 수업
-            </span>
-          `;
-        }
-      }
-
-
-      // 빈 수업
-      if (!lesson.subject) {
-
-        subject = `
-          <span class="empty-subject">
-            수업 없음
-          </span>
-        `;
-      }
-
-
-      return `
-        <div class="period">
-
-          <span>
+          <span class="period-number">
             ${lesson.period}교시
           </span>
 
-          <strong>
+          <span class="subject ${lesson.replaced ? "changed" : ""}">
             ${subject}
-          </strong>
+          </span>
+
+          <span class="teacher">
+            ${lesson.teacher || ""}
+          </span>
+
+          ${extra}
 
         </div>
-      `;
 
-    }).join("");
-  }
+      </div>
+    `;
+
+  }).join("");
+
+}
 
 
-  loadTimetable();
+// ─────────────────────
+// 시작
+// ─────────────────────
+
+loadTimetable();
+
 </script>
 </body>
   
