@@ -622,195 +622,89 @@ document
 ───────────── */
 
 function showDay(day) {
-
-
-  const box =
-    document.getElementById(
-      "timetable"
-    );
-
-
-  /*
-    아직 데이터를 못 받아왔다면
-  */
+  const box = document.getElementById("timetable");
 
   if (!timetableData) {
-
-    box.innerHTML =
-      "📚 시간표를 불러오는 중...";
-
+    box.innerHTML = "📚 시간표를 불러오는 중...";
     return;
-
   }
 
+  document.querySelectorAll(".day-button").forEach(button => {
+    button.classList.remove("active");
+  });
 
-
-  /*
-    선택한 버튼 활성화
-  */
-
-  document
-    .querySelectorAll(".day-button")
-    .forEach(button => {
-
-      button.classList.remove(
-        "active"
-      );
-
-    });
-
-
-  const selectedButton =
-    document.querySelector(
-      `.day-button[data-day="${day}"]`
-    );
-
+  const selectedButton = document.querySelector(
+    `.day-button[data-day="${day}"]`
+  );
 
   if (selectedButton) {
-
-    selectedButton.classList.add(
-      "active"
-    );
-
+    selectedButton.classList.add("active");
   }
 
+  const lessons = timetableData.timetable[day];
 
-
-  /*
-    해당 요일 시간표
-
-    0 = 월
-    1 = 화
-    2 = 수
-    3 = 목
-    4 = 금
-  */
-
-  const lessons =
-    timetableData.timetable[day];
-
-
-
-  /*
-    시간표가 없는 날
-  */
-
-  if (
-    !lessons ||
-    lessons.length === 0
-  ) {
-
-    box.innerHTML =
-      "<p>이 날은 시간표가 없습니다.</p>";
-
+  if (!lessons || lessons.length === 0) {
+    box.innerHTML = "<p>이 날은 시간표가 없습니다.</p>";
     return;
-
   }
 
+  box.innerHTML = lessons.map(lesson => {
 
+    let subject = lesson.subject;
+    let extra = "";
 
-  /*
-    시간표 만들기
-  */
+    // 변경된 수업
+    if (lesson.replaced) {
 
-  box.innerHTML =
-    lessons
-      .map(lesson => {
+      // 변경된 수업명이 비어 있으면 "시간표 변경"으로 표시
+      if (!subject) {
+        subject = "시간표 변경";
+      }
 
+      subject = "🔄 " + subject;
 
-        let subject =
-          lesson.subject ||
-          "수업 없음";
-
-
-        let extra = "";
-
-
-
-        /*
-          변경된 수업
-        */
-
-        if (
-          lesson.replaced
-        ) {
-
-
-          subject =
-            "🔄 " +
-            subject;
-
-
-
-          if (
-            lesson.original
-          ) {
-
-
-            extra = `
-              <span class="teacher">
-                원래:
-                ${lesson.original.subject}
-              </span>
-            `;
-
-          }
-
-        }
-
-
-
-        /*
-          한 교시 만들기
-        */
-
-        return `
-
-          <div class="period">
-
-            <div class="period-info">
-
-
-              <span class="period-number">
-
-                ${lesson.period}교시
-
-              </span>
-
-
-              <span
-                class="
-                  subject
-                  ${lesson.replaced
-                    ? "changed"
-                    : ""}
-                "
-              >
-
-                ${subject}
-
-              </span>
-
-
-              <span class="teacher">
-
-                ${lesson.teacher || ""}
-
-              </span>
-
-
-              ${extra}
-
-
-            </div>
-
-          </div>
-
+      // 원래 수업 표시
+      if (lesson.original) {
+        extra = `
+          <span class="teacher">
+            원래: ${lesson.original.subject || ""}
+          </span>
         `;
+      }
+    }
 
-      })
-      .join("");
+    // 일반 수업인데 과목명이 없는 경우
+    if (!subject) {
+      subject = "수업 정보 없음";
+    }
 
+    return `
+      <div class="period">
+
+        <div class="period-info">
+
+          <span class="period-number">
+            ${lesson.period}교시
+          </span>
+
+          <span class="subject ${
+            lesson.replaced ? "changed" : ""
+          }">
+            ${subject}
+          </span>
+
+          <span class="teacher">
+            ${lesson.teacher || ""}
+          </span>
+
+          ${extra}
+
+        </div>
+
+      </div>
+    `;
+
+  }).join("");
 }
 
 
