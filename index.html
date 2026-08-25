@@ -358,5 +358,69 @@
 
   loadTimetable();
 </script>
+  <script>
+  const API_URL = "https://holy-recipe-ee6e.sseoby0220.workers.dev/";
+
+  const SCHOOL_NAME = "대전하기중학";
+  const GRADE = 3;
+  const CLASS_NO = 5;
+
+  async function loadTimetable() {
+    const box = document.getElementById("timetable");
+
+    box.innerHTML = "📚 시간표를 불러오는 중...";
+
+    try {
+      const monday = getMonday();
+
+      const year = monday.getFullYear();
+      const month = String(monday.getMonth() + 1).padStart(2, "0");
+      const day = String(monday.getDate()).padStart(2, "0");
+
+      const week = `${year}${month}${day}`;
+
+      const url =
+        `${API_URL}?schoolname=${encodeURIComponent(SCHOOL_NAME)}` +
+        `&grade=${GRADE}` +
+        `&classno=${CLASS_NO}` +
+        `&week=${week}`;
+
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        throw new Error("시간표 API 오류");
+      }
+
+      const data = await response.json();
+
+      console.log(data);
+
+      box.innerHTML = `
+        <p>🎉 시간표 데이터를 받아왔어요!</p>
+        <pre>${JSON.stringify(data, null, 2)}</pre>
+      `;
+
+    } catch (error) {
+      console.error(error);
+
+      box.innerHTML =
+        "😥 시간표를 불러오지 못했어요.";
+    }
+  }
+
+  function getMonday() {
+    const date = new Date();
+    const day = date.getDay();
+
+    const diff = day === 0 ? -6 : 1 - day;
+
+    date.setDate(date.getDate() + diff);
+
+    return date;
+  }
+
+  loadTimetable();
+</script>
 </body>
+  
 </html>
