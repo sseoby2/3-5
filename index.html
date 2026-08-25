@@ -152,6 +152,63 @@
         flex-direction: column;
       }
     }
+    .timetable-buttons {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.day-button {
+  flex: 1;
+  border: none;
+  padding: 10px;
+  border-radius: 12px;
+  background: #f0eefc;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: bold;
+}
+
+.day-button.active {
+  background: #8b7cff;
+  color: white;
+}
+
+.period {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  background: #f7f5ff;
+  padding: 14px 16px;
+  border-radius: 12px;
+  margin-bottom: 10px;
+}
+
+.period span:first-child {
+  color: #777;
+  min-width: 45px;
+}
+
+.period strong {
+  text-align: right;
+}
+
+.period small {
+  display: block;
+  color: #999;
+  font-size: 11px;
+  margin-top: 3px;
+}
+
+.changed-subject {
+  color: #8b7cff;
+}
+
+.empty-subject {
+  color: #999;
+  font-weight: normal;
+}
   </style>
 </head>
 
@@ -195,12 +252,29 @@
   <h2>📚 이번 주 시간표</h2>
 
   <div class="timetable-buttons">
-    <button onclick="showDay(0)">월</button>
-    <button onclick="showDay(1)">화</button>
-    <button onclick="showDay(2)">수</button>
-    <button onclick="showDay(3)">목</button>
-    <button onclick="showDay(4)">금</button>
-  </div>
+<div class="timetable-buttons">
+
+  <button class="day-button" onclick="showDay(0)">
+    월
+  </button>
+
+  <button class="day-button" onclick="showDay(1)">
+    화
+  </button>
+
+  <button class="day-button" onclick="showDay(2)">
+    수
+  </button>
+
+  <button class="day-button" onclick="showDay(3)">
+    목
+  </button>
+
+  <button class="day-button" onclick="showDay(4)">
+    금
+  </button>
+
+</div>
 
   <div id="timetable">
     시간표를 불러오는 중...
@@ -392,7 +466,160 @@
 
   loadTimetable();
 
-</script>
+<script>
+  const API_URL =
+    "https://holy-recipe-ee6e.sseoby0220.workers.dev";
+
+  const SCHOOL_NAME = "대전하기중학";
+  const GRADE = 3;
+  const CLASS_NO = 5;
+
+  let timetableData = null;
+  let selectedDay = new Date().getDay() - 1;
+
+  // 주말이면 월요일 선택
+  if (selectedDay < 0 || selectedDay > 4) {
+    selectedDay = 0;
+  }
+
+
+  // 이번 주 시간표 가져오기
+  async function loadTimetable() {
+
+    const box = document.getElementById("timetable");
+
+    box.innerHTML = "📚 시간표를 불러오는 중...";
+
+    try {
+
+      const url =
+        `${API_URL}` +
+        `?schoolname=${encodeURIComponent(SCHOOL_NAME)}` +
+        `&grade=${GRADE}` +
+        `&classno=${CLASS_NO}` +
+        `&week=0`;
+
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        throw new Error(`API 오류: ${response.status}`);
+      }
+
+      timetableData = await response.json();
+
+      console.log("시간표:", timetableData);
+
+      showDay(selectedDay);
+
+    } catch (error) {
+
+      console.error(error);
+
+      box.innerHTML = `
+        <p>😥 시간표를 불러오지 못했어요.</p>
+        <small>${error.message}</small>
+      `;
+    }
+  }
+
+
+  // 요일 선택
+  function showDay(dayIndex) {
+
+    selectedDay = dayIndex;
+
+    const box = document.getElementById("timetable");
+
+    if (!timetableData) {
+      box.innerHTML = "📚 시간표를 불러오는 중...";
+      return;
+    }
+
+
+    // 버튼 활성화
+    document.querySelectorAll(".day-button").forEach((button, index) => {
+
+      button.classList.toggle(
+        "active",
+        index === dayIndex
+      );
+
+    });
+
+
+    const lessons =
+      timetableData.timetable[dayIndex];
+
+
+    if (!lessons || lessons.length === 0) {
+
+      box.innerHTML =
+        "<p>이 날은 시간표가 없습니다.</p>";
+
+      return;
+    }
+
+
+    box.innerHTML = lessons.map((lesson) => {
+
+      let subject = lesson.subject;
+
+      // 변경된 수업
+      if (lesson.replaced) {
+
+        if (lesson.original) {
+
+          subject = `
+            <span class="changed-subject">
+              ${lesson.subject || "변경된 수업"}
+            </span>
+
+            <small>
+              원래: ${lesson.original.subject}
+            </small>
+          `;
+
+        } else {
+
+          subject = `
+            <span class="changed-subject">
+              변경된 수업
+            </span>
+          `;
+        }
+      }
+
+
+      // 빈 수업
+      if (!lesson.subject) {
+
+        subject = `
+          <span class="empty-subject">
+            수업 없음
+          </span>
+        `;
+      }
+
+
+      return `
+        <div class="period">
+
+          <span>
+            ${lesson.period}교시
+          </span>
+
+          <strong>
+            ${subject}
+          </strong>
+
+        </div>
+      `;
+
+    }).join("");
+  }
+
+
+  loadTimetable();
 </script>
 </body>
   
